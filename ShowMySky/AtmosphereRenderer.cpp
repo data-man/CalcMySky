@@ -257,6 +257,60 @@ void AtmosphereRenderer::load4DTexAltitudeSlicePair(QString const& path, QOpenGL
     log << "done";
 }
 
+int AtmosphereRenderer::loadTexture1D(QString const& path)
+{
+    auto log=qDebug().nospace();
+
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{tr("GL error on entry to loadTexture1D(\"%1\"): %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+    log << "Loading texture from " << path << "... ";
+    QFile file(path);
+    if(!file.open(QFile::ReadOnly))
+        throw DataLoadError{tr("Failed to open file \"%1\": %2").arg(path).arg(file.errorString())};
+
+    uint16_t size;
+    {
+        const qint64 sizeToRead=sizeof size;
+        if(file.read(reinterpret_cast<char*>(&size), sizeToRead) != sizeToRead)
+        {
+            throw DataLoadError{tr("Failed to read header from file \"%1\": %2")
+                                .arg(path).arg(file.errorString())};
+        }
+    }
+    const auto subpixelCount = 4*uint64_t(size);
+    log << "dimensions from header: " << size << "... ";
+
+    if(const qint64 expectedFileSize = subpixelCount*sizeof(GLfloat)+file.pos();
+       expectedFileSize != file.size())
+    {
+        throw DataLoadError{tr("Size of file \"%1\" (%2 bytes) doesn't match image dimensions %3 from file header.\nThe expected size is %4 bytes.")
+                            .arg(path).arg(file.size()).arg(size).arg(expectedFileSize)};
+    }
+
+    const std::unique_ptr<GLfloat[]> subpixels(new GLfloat[subpixelCount]);
+    {
+        const qint64 sizeToRead=subpixelCount*sizeof subpixels[0];
+        const auto actuallyRead=file.read(reinterpret_cast<char*>(subpixels.get()), sizeToRead);
+        if(actuallyRead != sizeToRead)
+        {
+            const auto error = actuallyRead==-1 ? tr("Failed to read texture data from file \"%1\": %2").arg(path).arg(file.errorString())
+                                                : tr("Failed to read texture data from file \"%1\": requested %2 bytes, read %3").arg(path).arg(sizeToRead).arg(actuallyRead);
+            throw DataLoadError{error};
+        }
+    }
+    gl.glTexImage1D(GL_TEXTURE_1D,0,GL_RGBA32F,size,0,GL_RGBA,GL_FLOAT,subpixels.get());
+    if(const auto err=gl.glGetError(); err!=GL_NO_ERROR)
+    {
+        throw DataLoadError{tr("GL error in loadTexture1D(\"%1\") after glTexImage1D() call: %2")
+                            .arg(path).arg(openglErrorString(err).c_str())};
+    }
+    log << "done";
+    return size;
+}
+
 glm::ivec2 AtmosphereRenderer::loadTexture2D(QString const& path)
 {
     auto log=qDebug().nospace();
@@ -545,6 +599,51 @@ void AtmosphereRenderer::reloadScatteringTextures(const CountStepsOnly countStep
             loadTexture2D(QString("%1/light-pollution-wlset%2.f32").arg(pathToData_).arg(wlSetIndex));
             tick(++loadingStepsDone_);
         }
+    }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else
+    {
+        opticalHorizonsTexture_ = newTex(QOpenGLTexture::Target1D);
+        opticalHorizonsTexture_->setMinificationFilter(QOpenGLTexture::Linear);
+        opticalHorizonsTexture_->setMagnificationFilter(QOpenGLTexture::Linear);
+        opticalHorizonsTexture_->setWrapMode(QOpenGLTexture::ClampToEdge);
+        opticalHorizonsTexture_->bind();
+        loadTexture1D(QString("%1/optical-horizons.f32").arg(pathToData_));
+        tick(++loadingStepsDone_);
+    }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else
+    {
+        refractionForwardTexture_ = newTex(QOpenGLTexture::Target2D);
+        refractionForwardTexture_->setMinificationFilter(QOpenGLTexture::Linear);
+        refractionForwardTexture_->setMagnificationFilter(QOpenGLTexture::Linear);
+        refractionForwardTexture_->setWrapMode(QOpenGLTexture::ClampToEdge);
+        refractionForwardTexture_->bind();
+        loadTexture2D(QString("%1/refraction-fwd.f32").arg(pathToData_));
+        tick(++loadingStepsDone_);
+    }
+
+    if(countStepsOnly)
+    {
+        ++totalLoadingStepsToDo_;
+    }
+    else
+    {
+        refractionBackwardTexture_ = newTex(QOpenGLTexture::Target2D);
+        refractionBackwardTexture_->setMinificationFilter(QOpenGLTexture::Linear);
+        refractionBackwardTexture_->setMagnificationFilter(QOpenGLTexture::Linear);
+        refractionBackwardTexture_->setWrapMode(QOpenGLTexture::ClampToEdge);
+        refractionBackwardTexture_->bind();
+        loadTexture2D(QString("%1/refraction-back.f32").arg(pathToData_));
+        tick(++loadingStepsDone_);
     }
 }
 
@@ -1147,6 +1246,10 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("sunDirection", toQVector(sunDirection()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
+            refractionForwardTexture_->bind(1);
+            prog.setUniformValue("refractionAnglesForwardTexture", 1);
+            opticalHorizonsTexture_->bind(2);
+            prog.setUniformValue("opticalHorizonsTexture", 2);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
@@ -1162,6 +1265,10 @@ void AtmosphereRenderer::renderZeroOrderScattering()
             prog.setUniformValue("transmittanceTexture", 0);
             irradianceTextures_[wlSetIndex]->bind(1);
             prog.setUniformValue("irradianceTexture",1);
+            refractionForwardTexture_->bind(2);
+            prog.setUniformValue("refractionAnglesForwardTexture", 2);
+            opticalHorizonsTexture_->bind(3);
+            prog.setUniformValue("opticalHorizonsTexture", 3);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);

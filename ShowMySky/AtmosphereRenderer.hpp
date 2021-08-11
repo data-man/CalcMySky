@@ -110,6 +110,10 @@ private: // variables
     int numAltIntervalsIn4DTexture_;
     int numAltIntervalsInEclipsed4DTexture_;
 
+    std::unique_ptr<QOpenGLTexture> refractionForwardTexture_;
+    std::unique_ptr<QOpenGLTexture> refractionBackwardTexture_;
+    std::unique_ptr<QOpenGLTexture> opticalHorizonsTexture_;
+
     bool readyToRender_=false;
 
 private: // methods
@@ -130,6 +134,7 @@ private: // methods
     glm::dvec3 moonPosition() const;
     glm::dvec3 moonPositionRelativeToSunAzimuth() const;
     glm::dvec3 cameraPosition() const;
+    int loadTexture1D(QString const& path);
     glm::ivec2 loadTexture2D(QString const& path);
     void loadTexture4D(QString const& path, float altitudeCoord);
     void load4DTexAltitudeSlicePair(QString const& path, QOpenGLTexture& texLower, QOpenGLTexture& texUpper, float altitudeCoord);

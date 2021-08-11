@@ -73,6 +73,10 @@ void main()
     const float cosViewZenithAngle=dot(zenith,viewDir);
     const float cosSunZenithAngle =dot(zenith,sunDirection);
     const float dotViewSun=dot(viewDir,sunDirection);
+#if RENDERING_ANY_ZERO_SCATTERING
+	const vec3 geometricFinalViewDir = lookingIntoAtmosphere ? apparentDirToGeometric(cameraPosition, viewDir) : viewDir;
+    const float geometricDotViewSun=dot(geometricFinalViewDir, sunDirection);
+#endif
 
     bool viewRayIntersectsGround=false;
     {
@@ -106,7 +110,7 @@ void main()
         radiance = transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
-    else if(dotViewSun>cos(sunAngularRadius))
+    else if(geometricDotViewSun>cos(sunAngularRadius))
     {
         if(lookingIntoAtmosphere)
             radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();
@@ -122,7 +126,7 @@ void main()
     radianceOutput=radiance;
 #elif RENDERING_ECLIPSED_ZERO_SCATTERING
     vec4 radiance;
-    const float dotViewMoon=dot(viewDir,normalize(moonPosition-cameraPosition));
+    const float geometricDotViewMoon=dot(geometricFinalViewDir,normalize(moonPosition-cameraPosition));
     if(viewRayIntersectsGround)
     {
         // XXX: keep in sync with the similar code in non-eclipsed zero scattering rendering.
@@ -139,7 +143,7 @@ void main()
         radiance = transmittanceToGround*groundAlbedo*groundIrradiance*groundBRDF
                  + lightPollutionGroundLuminance*lightPollutionRelativeRadiance;
     }
-    else if(dotViewSun>cos(sunAngularRadius) && dotViewMoon<cos(moonAngularRadius(cameraPosition,moonPosition)))
+    else if(geometricDotViewSun>cos(sunAngularRadius) && geometricDotViewMoon<cos(moonAngularRadius(cameraPosition,moonPosition)))
     {
         if(lookingIntoAtmosphere)
             radiance=transmittanceToAtmosphereBorder(cosViewZenithAngle, altitude)*solarRadiance();

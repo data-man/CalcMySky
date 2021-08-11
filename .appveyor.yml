@@ -39,7 +39,7 @@ for:
 
   before_build:
     - cd C:/projects && mkdir build && mkdir install && cd build
-    - cmake -G "%CMAKE_GENERATOR%" -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="%QT_BASEDIR%/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky
+    - cmake -G "%CMAKE_GENERATOR%" -DBOOST_ROOT=C:\Libraries\boost_1_73_0 -DADD_CXX_FLAGS="/IC:/glm" -DCMAKE_PREFIX_PATH="%QT_BASEDIR%/lib/cmake/Qt5;C:/eigen/share/eigen3/cmake" -DCMAKE_INSTALL_PREFIX=../install ../CalcMySky
 
   build_script:
       - cmake --build . --config %configuration% -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
@@ -68,7 +68,7 @@ for:
     only:
       - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
   install:
-    - sudo apt-get install -y libeigen3-dev libglm-dev libqt5opengl5-dev
+    - sudo apt-get install -y libeigen3-dev libglm-dev libqt5opengl5-dev libboost-dev
   before_build:
     - cd ~/projects/ && mkdir build && mkdir CalcMySky && cd build
     - cmake -DCMAKE_BUILD_TYPE=$CONFIGURATION -DCMAKE_INSTALL_PREFIX="$PWD/install/CalcMySky" ../calcmysky -DCMAKE_CXX_COMPILER=g++-9
