@@ -1299,6 +1299,10 @@ void AtmosphereRenderer::precomputeEclipsedSingleScattering()
             prog.setUniformValue("sunZenithAngle", float(tools_->sunZenithAngle()));
             transmittanceTextures_[wlSetIndex]->bind(0);
             prog.setUniformValue("transmittanceTexture", 0);
+            refractionForwardTexture_->bind(1);
+            prog.setUniformValue("refractionAnglesForwardTexture", 1);
+            opticalHorizonsTexture_->bind(2);
+            prog.setUniformValue("opticalHorizonsTexture", 2);
             if(!solarIrradianceFixup_.empty())
                 prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1346,6 +1350,10 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
+                    refractionForwardTexture_->bind(1);
+                    prog.setUniformValue("refractionAnglesForwardTexture", 1);
+                    opticalHorizonsTexture_->bind(2);
+                    prog.setUniformValue("opticalHorizonsTexture", 2);
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1368,6 +1376,10 @@ void AtmosphereRenderer::renderSingleScattering()
                     prog.setUniformValue("sunDirection", toQVector(sunDirection()));
                     transmittanceTextures_[wlSetIndex]->bind(0);
                     prog.setUniformValue("transmittanceTexture", 0);
+                    refractionForwardTexture_->bind(1);
+                    prog.setUniformValue("refractionAnglesForwardTexture", 1);
+                    opticalHorizonsTexture_->bind(2);
+                    prog.setUniformValue("opticalHorizonsTexture", 2);
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1396,6 +1408,10 @@ void AtmosphereRenderer::renderSingleScattering()
                         tex.bind(0);
                         prog.setUniformValue("eclipsedScatteringTexture", 0);
                     }
+                    refractionForwardTexture_->bind(1);
+                    prog.setUniformValue("refractionAnglesForwardTexture", 1);
+                    opticalHorizonsTexture_->bind(2);
+                    prog.setUniformValue("opticalHorizonsTexture", 2);
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1422,6 +1438,10 @@ void AtmosphereRenderer::renderSingleScattering()
                         prog.setUniformValue("scatteringTexture", 0);
                         prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
                     }
+                    refractionForwardTexture_->bind(1);
+                    prog.setUniformValue("refractionAnglesForwardTexture", 1);
+                    opticalHorizonsTexture_->bind(2);
+                    prog.setUniformValue("opticalHorizonsTexture", 2);
                     if(!solarIrradianceFixup_.empty())
                         prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1444,6 +1464,10 @@ void AtmosphereRenderer::renderSingleScattering()
             }
             prog.setUniformValue("scatteringTexture", 0);
             prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
+            refractionForwardTexture_->bind(1);
+            prog.setUniformValue("refractionAnglesForwardTexture", 1);
+            opticalHorizonsTexture_->bind(2);
+            prog.setUniformValue("opticalHorizonsTexture", 2);
 
             drawSurface(prog);
         }
@@ -1461,6 +1485,10 @@ void AtmosphereRenderer::renderSingleScattering()
                 tex.bind(0);
                 prog.setUniformValue("eclipsedScatteringTexture", 0);
             }
+            refractionForwardTexture_->bind(1);
+            prog.setUniformValue("refractionAnglesForwardTexture", 1);
+            opticalHorizonsTexture_->bind(2);
+            prog.setUniformValue("opticalHorizonsTexture", 2);
 
             drawSurface(prog);
         }
@@ -1481,6 +1509,10 @@ void AtmosphereRenderer::precomputeEclipsedDoubleScattering()
         int unusedTextureUnitNum=0;
         transmittanceTextures_[wlSetIndex]->bind(unusedTextureUnitNum);
         prog.setUniformValue("transmittanceTexture", unusedTextureUnitNum++);
+        refractionForwardTexture_->bind(unusedTextureUnitNum);
+        prog.setUniformValue("refractionAnglesForwardTexture", unusedTextureUnitNum++);
+        opticalHorizonsTexture_->bind(unusedTextureUnitNum);
+        prog.setUniformValue("opticalHorizonsTexture", unusedTextureUnitNum++);
         if(!solarIrradianceFixup_.empty())
             prog.setUniformValue("solarIrradianceFixup", solarIrradianceFixup_[wlSetIndex]);
 
@@ -1533,6 +1565,10 @@ void AtmosphereRenderer::renderMultipleScattering()
                 prog.setUniformValue("eclipsedDoubleScatteringAltitudeAlphaUpper", 0.f);
                 prog.setUniformValue("eclipsedDoubleScatteringTextureSize", QVector3D(params_.eclipsedDoubleScatteringTextureSize[0],
                                                                                       params_.eclipsedDoubleScatteringTextureSize[1], 1));
+                refractionForwardTexture_->bind(1);
+                prog.setUniformValue("refractionAnglesForwardTexture", 1);
+                opticalHorizonsTexture_->bind(2);
+                prog.setUniformValue("opticalHorizonsTexture", 2);
             }
             else
             {
@@ -1552,6 +1588,10 @@ void AtmosphereRenderer::renderMultipleScattering()
 
                 prog.setUniformValue("eclipsedDoubleScatteringAltitudeAlphaUpper", eclipsedDoubleScatteringAltitudeAlphaUpper_);
                 prog.setUniformValue("eclipsedDoubleScatteringTextureSize", toQVector(glm::vec3(params_.eclipsedDoubleScatteringTextureSize)));
+                refractionForwardTexture_->bind(2);
+                prog.setUniformValue("refractionAnglesForwardTexture", 2);
+                opticalHorizonsTexture_->bind(3);
+                prog.setUniformValue("opticalHorizonsTexture", 3);
             }
             drawSurface(prog);
         }
@@ -1571,6 +1611,10 @@ void AtmosphereRenderer::renderMultipleScattering()
             tex.bind(0);
             prog.setUniformValue("scatteringTexture", 0);
             prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
+            refractionForwardTexture_->bind(1);
+            prog.setUniformValue("refractionAnglesForwardTexture", 1);
+            opticalHorizonsTexture_->bind(2);
+            prog.setUniformValue("opticalHorizonsTexture", 2);
             drawSurface(prog);
         }
         else
@@ -1593,6 +1637,10 @@ void AtmosphereRenderer::renderMultipleScattering()
                 tex.bind(0);
                 prog.setUniformValue("scatteringTexture", 0);
                 prog.setUniformValue("staticAltitudeTexCoord", staticAltitudeTexCoord_);
+                refractionForwardTexture_->bind(1);
+                prog.setUniformValue("refractionAnglesForwardTexture", 1);
+                opticalHorizonsTexture_->bind(2);
+                prog.setUniformValue("opticalHorizonsTexture", 2);
                 drawSurface(prog);
             }
         }
@@ -1617,6 +1665,10 @@ void AtmosphereRenderer::renderLightPollution()
         tex.setMagnificationFilter(texFilter);
         tex.bind(0);
         prog.setUniformValue("lightPollutionScatteringTexture", 0);
+        refractionForwardTexture_->bind(1);
+        prog.setUniformValue("refractionAnglesForwardTexture", 1);
+        opticalHorizonsTexture_->bind(2);
+        prog.setUniformValue("opticalHorizonsTexture", 2);
         prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
         drawSurface(prog);
     }
@@ -1639,6 +1691,10 @@ void AtmosphereRenderer::renderLightPollution()
             tex.setMagnificationFilter(texFilter);
             tex.bind(0);
             prog.setUniformValue("lightPollutionScatteringTexture", 0);
+            refractionForwardTexture_->bind(1);
+            prog.setUniformValue("refractionAnglesForwardTexture", 1);
+            opticalHorizonsTexture_->bind(2);
+            prog.setUniformValue("opticalHorizonsTexture", 2);
             prog.setUniformValue("lightPollutionGroundLuminance", float(tools_->lightPollutionGroundLuminance()));
             drawSurface(prog);
         }

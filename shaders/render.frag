@@ -9,7 +9,7 @@
 #include_if(RENDERING_ANY_ECLIPSED_SINGLE_SCATTERING) "single-scattering-eclipsed.h.glsl"
 #include "texture-coordinates.h.glsl"
 #include "radiance-to-luminance.h.glsl"
-#include_if(RENDERING_ANY_ZERO_SCATTERING) "texture-sampling-functions.h.glsl"
+#include "texture-sampling-functions.h.glsl"
 #include_if(RENDERING_ECLIPSED_ZERO_SCATTERING) "eclipsed-direct-irradiance.h.glsl"
 #include_if(RENDERING_ANY_LIGHT_POLLUTION) "texture-sampling-functions.h.glsl"
 
@@ -78,18 +78,7 @@ void main()
     const float geometricDotViewSun=dot(geometricFinalViewDir, sunDirection);
 #endif
 
-    bool viewRayIntersectsGround=false;
-    {
-        const vec3 p = cameraPosition - earthCenter;
-        const float p_dot_v = dot(p, viewDir);
-        const float p_dot_p = dot(p, p);
-        const float squaredDistBetweenViewRayAndEarthCenter = p_dot_p - sqr(p_dot_v);
-        const float distanceToIntersection = -p_dot_v - sqrt(sqr(earthRadius) - squaredDistBetweenViewRayAndEarthCenter);
-        // altitude==0 is a special case where distance to intersection calculation
-        // is unreliable (has a lot of noise in its sign), so check it separately
-        if(distanceToIntersection>0 || (altitude==0 && cosViewZenithAngle<0))
-            viewRayIntersectsGround=true;
-    }
+    const bool viewRayIntersectsGround = lookingIntoAtmosphere && sin(opticalHorizonElevation(altitude)) > cosViewZenithAngle;
 
     const vec3 sunXY=normalize(sunDirection-dot(sunDirection,zenith)*zenith);
     const vec3 viewXY=normalize(viewDir-dot(viewDir,zenith)*zenith);
