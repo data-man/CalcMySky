@@ -31,6 +31,16 @@ vec4 solarRadiance()
     return solarIrradianceAtTOA/(PI*sqr(sunAngularRadius));
 }
 
+float calcDistToAltitudeLayer(const vec3 cameraPosition, const vec3 viewDir, const float layerAltitude, out bool intersectionFound)
+{
+    const vec3 p = cameraPosition - earthCenter;
+    const float p_dot_v = dot(p, viewDir); // (R+h)cos(VZA)
+    const float p_dot_p = dot(p, p); // (R+h)^2
+    const float squaredDistBetweenViewRayAndEarthCenter = p_dot_p - sqr(p_dot_v); // (R+h)^2*sin(VZA)^2
+    intersectionFound = squaredDistBetweenViewRayAndEarthCenter <= sqr(earthRadius+layerAltitude);
+    return -p_dot_v - sqrt(sqr(earthRadius+layerAltitude) - squaredDistBetweenViewRayAndEarthCenter);
+}
+
 void main()
 {
     const vec3 viewDir=calcViewDir();
@@ -47,27 +57,28 @@ void main()
     bool lookingIntoAtmosphere=true;
     if(altitude>atmosphereHeight)
     {
-        const vec3 p = cameraPosition - earthCenter;
-        const float p_dot_v = dot(p, viewDir);
-        const float p_dot_p = dot(p, p);
-        const float squaredDistBetweenViewRayAndEarthCenter = p_dot_p - sqr(p_dot_v);
-        const float distanceToTOA = -p_dot_v - sqrt(sqr(earthRadius+atmosphereHeight) - squaredDistBetweenViewRayAndEarthCenter);
-        if(distanceToTOA>=0)
+        float distanceToTOA = calcDistToAltitudeLayer(cameraPosition, viewDir, atmosphereHeight, lookingIntoAtmosphere);
+        if(distanceToTOA>=0 && lookingIntoAtmosphere)
         {
             cameraPosition += viewDir*distanceToTOA;
+            // The first attempt will under- or overshoot if initial altitude is very large, e.g. at the
+            // Moon's orbit about the Earth. This is due to limited precision of float. So, make a second
+            // pass to refine.
+            distanceToTOA = calcDistToAltitudeLayer(cameraPosition, viewDir, atmosphereHeight, lookingIntoAtmosphere);
+            if(lookingIntoAtmosphere)
+                cameraPosition += viewDir*distanceToTOA;
             altitude = atmosphereHeight;
         }
-        else
-        {
-#if RENDERING_ANY_ZERO_SCATTERING
-            lookingIntoAtmosphere=false;
-#else
-            luminance=vec4(0);
-            radianceOutput=vec4(0);
-            return;
-#endif
-        }
     }
+
+#if !RENDERING_ANY_ZERO_SCATTERING
+    if(!lookingIntoAtmosphere)
+    {
+        luminance=vec4(0);
+        radianceOutput=vec4(0);
+        return;
+    }
+#endif
 
     const vec3 zenith=normalize(cameraPosition-earthCenter);
     const float cosViewZenithAngle=dot(zenith,viewDir);
